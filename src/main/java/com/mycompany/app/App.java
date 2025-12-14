@@ -5,6 +5,7 @@
 package com.mycompany.app;
 
 import clases.conexionBaseDatos;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
@@ -17,7 +18,8 @@ public class App {
         System.out.println("Hello World!");
         try {
             conexionBaseDatos test = new conexionBaseDatos();
-            test.testConnection();
+            ResultSet rs=test.query("select * from paciente");
+            System.out.println(rs);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
