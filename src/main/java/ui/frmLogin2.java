@@ -29,40 +29,49 @@ public class frmLogin2 extends javax.swing.JFrame {
     }
 
     private void login() {
+        System.out.println("Paso 1: Entró al método login"); // CHECKPOINT 1
 
         String username = txtUsuario.getText().trim();
         String password = new String(txtPassword.getPassword());
 
         if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Usuario y contraseña obligatorios");
+            JOptionPane.showMessageDialog(this, "Usuario y contraseña obligatorios");
             return;
         }
 
         try {
-            UsuarioDAO dao = new UsuarioDAO();
-            Usuario usuario = dao.login(username, PasswordUtil.sha256(password));
+            System.out.println("Paso 2: Intentando crear UsuarioDAO (Conectando...)"); // CHECKPOINT 2
+
+            // AQUÍ ES DONDE SOSPECHO QUE FALLA O SE CONGELA
+            UsuarioDAO dao = new UsuarioDAO(); 
+
+            System.out.println("Paso 3: DAO creado. Calculando Hash..."); // CHECKPOINT 3
+            String hash = PasswordUtil.sha256(password);
+            // --- AGREGA ESTO ---
+            System.out.println("HASH GENERADO POR JAVA: " + hash);
+            // -------------------  
+            System.out.println("Paso 4: Enviando datos a la BD..."); // CHECKPOINT 4
+            Usuario usuario = dao.login(username, hash);
 
             if (usuario == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Usuario o contraseña incorrectos");
+                System.out.println("Paso 5: Usuario es NULL (Credenciales malas o Error en Query)"); // CHECKPOINT 5
+                JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
                 return;
             }
 
-            sesion.iniciarSesion(usuario, usuario.getRol());
+            System.out.println("Paso 6: ¡ÉXITO! Iniciando sesión"); // CHECKPOINT 6
+            // sesion.iniciarSesion(usuario, usuario.getRol()); // Comenta esto si da error por ahora
 
-            JOptionPane.showMessageDialog(this,
-                    "Bienvenido " + usuario.getNombre() +
-                    "\nRol: " + usuario.getRol());
-
+            JOptionPane.showMessageDialog(this, "Bienvenido " + usuario.getNombre());
             this.dispose();
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error: " + ex.getMessage());
+            // IMPORTANTE: Imprimir el error real en la consola
+            System.out.println("ERROR FATAL EN LOGIN:");
+            ex.printStackTrace(); 
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
         }
     }
-    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always

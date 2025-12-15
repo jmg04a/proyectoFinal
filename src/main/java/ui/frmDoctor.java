@@ -12,15 +12,15 @@ import javax.swing.table.DefaultTableModel;
  *
  * @author jose
  */
-public class jTableHistorialMedico extends javax.swing.JFrame {
+public class frmDoctor extends javax.swing.JFrame {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jTableHistorialMedico.class.getName());
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frmDoctor.class.getName());
     private conexionBaseDatos conexion;
     
     /**
      * Creates new form jtableTest
      */
-    public jTableHistorialMedico() throws SQLException {
+    public frmDoctor() throws SQLException {
         initComponents();
         conexion =new conexionBaseDatos();
     }
@@ -62,20 +62,19 @@ public class jTableHistorialMedico extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 705, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 705, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(jButton1)))
                 .addContainerGap())
-            .addGroup(layout.createSequentialGroup()
-                .addGap(33, 33, 33)
-                .addComponent(jButton1)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 252, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(33, 33, 33)
-                .addComponent(jButton1)
-                .addGap(0, 77, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 110, Short.MAX_VALUE)
+                .addComponent(jButton1))
         );
 
         pack();
@@ -86,24 +85,14 @@ public class jTableHistorialMedico extends javax.swing.JFrame {
         
         DefaultTableModel modelo=new DefaultTableModel();
         String query="""
-                     SELECT 
-                         h.id_historial,
-                         TO_CHAR(h.fecha_consulta, 'DD/MM/YYYY') AS fecha,
-                         p.nombre AS paciente,
-                         u.nombre AS doctor,
-                         d.especialidad,
-                         h.diagnostico,
-                         h.notas
-                     FROM 
-                         APLICACION.Historial_Clinico h
-                     JOIN 
-                         APLICACION.Paciente p ON h.id_paciente = p.id_paciente
-                     JOIN 
-                         APLICACION.Doctor d ON h.id_doctor = d.id_doctor
-                     JOIN 
-                         APLICACION.Usuario u ON d.id_usuario = u.id_usuario
-                     ORDER BY 
-                         h.fecha_consulta DESC;
+                    SELECT a.id_auditoria,
+                               a.accion,
+                               a.tabla_afectada,
+                               TO_CHAR(a.fecha_hora, 'DD/MM/YYYY HH24:MI:SS') as fecha_hora,
+                               u.nombre AS usuario_responsable
+                        FROM Auditoria a
+                        JOIN Usuario u ON a.id_usuario = u.id_usuario
+                        ORDER BY a.fecha_hora DESC
                      """;
         //Cambias el texto por lo que quieras cargar
         modelo=conexion.getTableModel(query);
@@ -135,9 +124,9 @@ public class jTableHistorialMedico extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
             try {
-                new jTableHistorialMedico().setVisible(true);
+                new frmDoctor().setVisible(true);
             } catch (SQLException ex) {
-                System.getLogger(jTableHistorialMedico.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+                System.getLogger(frmDoctor.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
             }
         });
     }

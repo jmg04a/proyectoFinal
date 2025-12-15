@@ -106,8 +106,8 @@ public class jTableAuditoria extends javax.swing.JFrame {
                                a.tabla_afectada,
                                TO_CHAR(a.fecha_hora, 'DD/MM/YYYY HH24:MI:SS') as fecha_hora,
                                u.nombre AS usuario_responsable
-                        FROM APLICACION.Auditoria a
-                        JOIN APLICACION.Usuario u ON a.id_usuario = u.id_usuario
+                        FROM Auditoria a
+                        JOIN Usuario u ON a.id_usuario = u.id_usuario
                         ORDER BY a.fecha_hora DESC
                      """;
         //Cambias el texto por lo que quieras cargar

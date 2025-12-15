@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
-package formularios;
+package ui;
 
 import clases.conexionBaseDatos;
 import java.sql.SQLException;
@@ -12,18 +12,17 @@ import javax.swing.table.DefaultTableModel;
  *
  * @author jose
  */
-public class TablaPrueba extends javax.swing.JFrame {
+public class frmAdministrador extends javax.swing.JFrame {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(TablaPrueba.class.getName());
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frmAdministrador.class.getName());
     private conexionBaseDatos conexion;
     
     /**
-     * Creates new form TablaPrueba
-     * @throws java.sql.SQLException
+     * Creates new form jtableTest
      */
-    public TablaPrueba() throws SQLException {
+    public frmAdministrador() throws SQLException {
         initComponents();
-        this.conexion = new conexionBaseDatos();
+        conexion =new conexionBaseDatos();
     }
 
     /**
@@ -35,54 +34,47 @@ public class TablaPrueba extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jButton1 = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jButton1.setText("jButton1");
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+
+            }
+        ));
+        jScrollPane1.setViewportView(jTable1);
+
+        jButton1.setText("Actualizar tabla");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
             }
         });
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
-        jScrollPane1.setViewportView(jTable1);
-
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(14, 14, 14)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 676, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(11, 11, 11)
-                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE)))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 705, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(jButton1)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap(12, Short.MAX_VALUE)
-                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 421, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 252, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 110, Short.MAX_VALUE)
+                .addComponent(jButton1))
         );
 
         pack();
@@ -90,11 +82,22 @@ public class TablaPrueba extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
+        
         DefaultTableModel modelo=new DefaultTableModel();
-        String query="Select * from cita";
+        String query="""
+                    SELECT a.id_auditoria,
+                               a.accion,
+                               a.tabla_afectada,
+                               TO_CHAR(a.fecha_hora, 'DD/MM/YYYY HH24:MI:SS') as fecha_hora,
+                               u.nombre AS usuario_responsable
+                        FROM Auditoria a
+                        JOIN Usuario u ON a.id_usuario = u.id_usuario
+                        ORDER BY a.fecha_hora DESC
+                     """;
         //Cambias el texto por lo que quieras cargar
         modelo=conexion.getTableModel(query);
         this.jTable1.setModel(modelo);
+        
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
@@ -121,9 +124,9 @@ public class TablaPrueba extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
             try {
-                new TablaPrueba().setVisible(true);
+                new frmAdministrador().setVisible(true);
             } catch (SQLException ex) {
-                System.getLogger(TablaPrueba.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+                System.getLogger(frmAdministrador.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
             }
         });
     }

@@ -64,7 +64,23 @@ public class conexionBaseDatos {
             while (rs.next()) {
                 Object[] fila = new Object[numeroColumnas];
                 for (int i = 0; i < numeroColumnas; i++) {
-                    fila[i] = rs.getObject(i + 1);
+                    Object objeto = rs.getObject(i + 1);
+
+                    // --- CORRECCIÓN PARA CLOB ---
+                    if (objeto instanceof Clob) {
+                        Clob clob = (Clob) objeto;
+                        try {
+                            // Extrae el texto desde el carácter 1 hasta el final
+                            // (Ojo: Oracle empieza a contar en 1, no en 0)
+                            fila[i] = clob.getSubString(1, (int) clob.length());
+                        } catch (SQLException e) {
+                            fila[i] = "Error al leer nota";
+                        }
+                    } else {
+                        // Si no es CLOB, lo guardamos normal
+                        fila[i] = objeto;
+                    }
+                    // -----------------------------
                 }
                 modelo.addRow(fila);
             }
