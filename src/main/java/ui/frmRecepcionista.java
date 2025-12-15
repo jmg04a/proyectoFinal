@@ -6,6 +6,8 @@ package ui;
 
 import clases.conexionBaseDatos;
 import java.sql.SQLException;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -45,6 +47,7 @@ public class frmRecepcionista extends javax.swing.JFrame {
         jButPacientes = new javax.swing.JButton();
         jButDoctores = new javax.swing.JButton();
         jButPacientesAgregar = new javax.swing.JButton();
+        jButPacienteEliminar = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -102,6 +105,18 @@ public class frmRecepcionista extends javax.swing.JFrame {
         });
 
         jButPacientesAgregar.setText("Agregar paciente nuevo ");
+        jButPacientesAgregar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButPacientesAgregarActionPerformed(evt);
+            }
+        });
+
+        jButPacienteEliminar.setText("Eliminar paciente");
+        jButPacienteEliminar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButPacienteEliminarActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -117,14 +132,16 @@ public class frmRecepcionista extends javax.swing.JFrame {
                             .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButCitas))
                         .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jButPacientes)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButPacientesAgregar))
+                                .addComponent(jButPacientesAgregar)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jButPacienteEliminar))
                             .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addComponent(jButDoctores))
-                .addContainerGap(581, Short.MAX_VALUE))
+                .addContainerGap(525, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -139,7 +156,8 @@ public class frmRecepcionista extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButCitas)
                     .addComponent(jButPacientes)
-                    .addComponent(jButPacientesAgregar))
+                    .addComponent(jButPacientesAgregar)
+                    .addComponent(jButPacienteEliminar))
                 .addGap(9, 9, 9)
                 .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 252, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -207,8 +225,8 @@ public class frmRecepcionista extends javax.swing.JFrame {
                                 d.especialidad,
                                 d.cedula_profesional,
                                 d.horario
-                         FROM APLICACION.Doctor d
-                         JOIN APLICACION.Usuario u ON d.id_usuario = u.id_usuario
+                         FROM Doctor d
+                         JOIN Usuario u ON d.id_usuario = u.id_usuario
                          ORDER BY u.nombre ASC
                      """;
         //Cambias el texto por lo que quieras cargar
@@ -216,6 +234,56 @@ public class frmRecepcionista extends javax.swing.JFrame {
         this.jTabPacientes.setModel(modelo);
         
     }//GEN-LAST:event_jButDoctoresActionPerformed
+
+    private void jButPacientesAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButPacientesAgregarActionPerformed
+        // TODO add your handling code here:
+        
+        
+        
+    }//GEN-LAST:event_jButPacientesAgregarActionPerformed
+
+    private void jButPacienteEliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButPacienteEliminarActionPerformed
+        // TODO add your handling code here:
+        
+            // 1. Verificar si seleccionó una fila
+        int fila = jTabPacientes.getSelectedRow();
+        if (fila < 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un registro primero");
+            return;
+        }
+
+        // 2. Pedir confirmación
+        int confirmacion = JOptionPane.showConfirmDialog(this, 
+            "¿Seguro que deseas eliminar este registro? Este registro puede borrar otros que dependen de el como citas", 
+            "Confirmar Borrado", 
+            JOptionPane.YES_NO_OPTION);
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // 3. Obtener el ID (OJO: Asumiendo que el ID es la columna 0)
+            String idStr = jTabPacientes.getValueAt(fila, 0).toString();
+            int id = Integer.parseInt(idStr);
+
+            // 4. Mandar a borrar en Hilo Virtual (Java 21)
+            
+                try {
+                    // Llama a tu método DELETE en el DAO
+                    boolean exito=conexion.ejecutarSQL("delete from paciente where id ="+id+" cascade");
+                    
+                    if(exito){
+                        // Actualizar tabla en hilo visual
+                        SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, "Eliminado correctamente");
+                        });
+                    }
+                    
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> 
+                        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage()));
+                }
+            
+        }
+        
+    }//GEN-LAST:event_jButPacienteEliminarActionPerformed
 
     /**
      * @param args the command line arguments
@@ -251,6 +319,7 @@ public class frmRecepcionista extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButCitas;
     private javax.swing.JButton jButDoctores;
+    private javax.swing.JButton jButPacienteEliminar;
     private javax.swing.JButton jButPacientes;
     private javax.swing.JButton jButPacientesAgregar;
     private javax.swing.JLabel jLabel1;

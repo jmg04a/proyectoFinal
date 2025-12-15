@@ -34,18 +34,20 @@
                           <Component id="jButCitas" alignment="0" min="-2" max="-2" attributes="0"/>
                       </Group>
                       <EmptySpace type="separate" max="-2" attributes="0"/>
-                      <Group type="103" groupAlignment="0" attributes="0">
+                      <Group type="103" groupAlignment="0" max="-2" attributes="0">
                           <Group type="102" attributes="0">
                               <Component id="jButPacientes" min="-2" max="-2" attributes="0"/>
                               <EmptySpace max="-2" attributes="0"/>
                               <Component id="jButPacientesAgregar" min="-2" max="-2" attributes="0"/>
+                              <EmptySpace max="32767" attributes="0"/>
+                              <Component id="jButPacienteEliminar" min="-2" max="-2" attributes="0"/>
                           </Group>
                           <Component id="jScrollPane2" min="-2" pref="500" max="-2" attributes="0"/>
                       </Group>
                   </Group>
                   <Component id="jButDoctores" alignment="0" min="-2" max="-2" attributes="0"/>
               </Group>
-              <EmptySpace pref="581" max="32767" attributes="0"/>
+              <EmptySpace pref="525" max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -64,6 +66,7 @@
                   <Component id="jButCitas" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="jButPacientes" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="jButPacientesAgregar" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="jButPacienteEliminar" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace min="-2" pref="9" max="-2" attributes="0"/>
               <Component id="jScrollPane3" min="-2" pref="252" max="-2" attributes="0"/>
@@ -168,6 +171,17 @@
       <Properties>
         <Property name="text" type="java.lang.String" value="Agregar paciente nuevo "/>
       </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jButPacientesAgregarActionPerformed"/>
+      </Events>
+    </Component>
+    <Component class="javax.swing.JButton" name="jButPacienteEliminar">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="Eliminar paciente"/>
+      </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jButPacienteEliminarActionPerformed"/>
+      </Events>
     </Component>
   </SubComponents>
 </Form>
