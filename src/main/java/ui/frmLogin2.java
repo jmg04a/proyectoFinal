@@ -63,8 +63,50 @@ public class frmLogin2 extends javax.swing.JFrame {
             // sesion.iniciarSesion(usuario, usuario.getRol()); // Comenta esto si da error por ahora
 
             JOptionPane.showMessageDialog(this, "Bienvenido " + usuario.getNombre());
-            this.dispose();
+            
+            // ... (código anterior donde obtienes el usuario del DAO) ...
 
+            if (usuario != null) {
+                // 1. Limpieza: Pasamos a mayúsculas y quitamos espacios para evitar errores tontos
+                // Asegúrate que 'usuario.getRol()' no sea null antes de esto, o usa un try/catch.
+                String rol = usuario.getRol().trim().toUpperCase();
+
+                System.out.println("Rol detectado: " + rol); // Debug útil
+
+                // 2. El Switch Moderno (sin 'break', usa flechas '->')
+                switch (rol) {
+                    case "ADMINISTRADOR" -> {
+                        // Abres el formulario del Admin
+                        frmAdministrador adminForm = new frmAdministrador(); 
+                        adminForm.setVisible(true);
+                        this.dispose(); // Cierras el Login
+                    }
+
+                    case "RECEPCIONISTA" -> {
+                        // Abres el formulario de Recepción
+                        frmRecepcionista recepForm = new frmRecepcionista();
+                        recepForm.setVisible(true);
+                        this.dispose();
+                    }
+
+                    case "DOCTOR" -> {
+                        // Al doctor quizás le quieras pasar su ID o Usuario para filtrar sus citas
+                        frmDoctor docForm = new frmDoctor(); 
+                        docForm.setVisible(true);
+                        this.dispose();
+                    }
+
+                    // 'default' se ejecuta si el rol no coincide con ninguno
+                    default -> {
+                        JOptionPane.showMessageDialog(this, 
+                            "Error: Tu rol (" + rol + ") no tiene permiso para entrar al sistema.");
+                    }
+                }
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
+            }
+            
         } catch (Exception ex) {
             // IMPORTANTE: Imprimir el error real en la consola
             System.out.println("ERROR FATAL EN LOGIN:");
