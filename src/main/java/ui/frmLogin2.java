@@ -77,7 +77,7 @@ public class frmLogin2 extends javax.swing.JFrame {
                 switch (rol) {
                     case "ADMINISTRADOR" -> {
                         // Abres el formulario del Admin
-                        frmAdministrador adminForm = new frmAdministrador(); 
+                        frm adminForm = new frm(); 
                         adminForm.setVisible(true);
                         this.dispose(); // Cierras el Login
                     }

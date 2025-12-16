@@ -4,6 +4,14 @@
  */
 package ui;
 
+import clases.conexionBaseDatos;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.table.DefaultTableModel;
+import modelo.GestorPermisos;
+import modelo.Permisos;
+
 /**
  *
  * @author jose
@@ -11,13 +19,46 @@ package ui;
 public class frm extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frm.class.getName());
-
+private String permisosHex;   // Ej: "FF"
+private DefaultTableModel modelo;
+private conexionBaseDatos conexion;
     /**
      * Creates new form frm
      */
-    public frm() {
-        initComponents();
+    
+    public frm() throws SQLException {
+    initComponents();
+    this.permisosHex = permisosHex;
+    conexion = new conexionBaseDatos();
+    configurarPermisos();
+    
+
+        
     }
+    
+private void configurarPermisos() {
+
+    btnCrear.setEnabled(
+        GestorPermisos.tienePermiso(permisosHex, Permisos.USUARIO_GESTIONAR)
+    );
+
+    btnEliminar.setEnabled(
+        GestorPermisos.tienePermiso(permisosHex, Permisos.USUARIO_GESTIONAR)
+    );
+
+    btnActualizar.setEnabled(
+        GestorPermisos.tienePermiso(permisosHex, Permisos.USUARIO_GESTIONAR)
+    );
+}
+
+   
+
+    
+
+    
+ 
+
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -30,10 +71,10 @@ public class frm extends javax.swing.JFrame {
 
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
-        jComboBox1 = new javax.swing.JComboBox<>();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
+        cmbTablas = new javax.swing.JComboBox<>();
+        btnCrear = new javax.swing.JButton();
+        btnEliminar = new javax.swing.JButton();
+        btnActualizar = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -51,13 +92,18 @@ public class frm extends javax.swing.JFrame {
         ));
         jScrollPane1.setViewportView(jTable1);
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cmbTablas.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Usuarios", "Pacientes", "Citas", "Auditoria" }));
+        cmbTablas.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cmbTablasActionPerformed(evt);
+            }
+        });
 
-        jButton1.setText("jButton1");
+        btnCrear.setText("Crear");
 
-        jButton2.setText("jButton1");
+        btnEliminar.setText("Eliminar");
 
-        jButton3.setText("jButton1");
+        btnActualizar.setText("Actualizar");
 
         jButton4.setText("jButton1");
 
@@ -67,19 +113,19 @@ public class frm extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(5, 5, 5)
-                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(cmbTablas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jButton1)
+                        .addComponent(btnCrear)
                         .addGap(18, 18, 18)
-                        .addComponent(jButton2)
+                        .addComponent(btnEliminar)
                         .addGap(18, 18, 18)
-                        .addComponent(jButton3)
+                        .addComponent(btnActualizar)
                         .addGap(18, 18, 18)
                         .addComponent(jButton4))
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 452, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(83, Short.MAX_VALUE))
+                .addContainerGap(71, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -88,18 +134,52 @@ public class frm extends javax.swing.JFrame {
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 352, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(cmbTablas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton1)
-                    .addComponent(jButton2)
-                    .addComponent(jButton3)
+                    .addComponent(btnCrear)
+                    .addComponent(btnEliminar)
+                    .addComponent(btnActualizar)
                     .addComponent(jButton4))
                 .addContainerGap(7, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void cmbTablasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbTablasActionPerformed
+        // TODO add your handling code here:
+        String seleccion = cmbTablas.getSelectedItem().toString();
+    String sql = "";
+
+    switch (seleccion) {
+
+        case "Usuarios" -> sql = """
+            SELECT id_usuario, nombre, username, estado
+            FROM aplicacion.usuario
+        """;
+
+        case "Pacientes" -> sql = """
+            SELECT id_paciente, nombre, telefono
+            FROM aplicacion.paciente
+        """;
+
+        case "Citas" -> sql = """
+            SELECT id_cita, fecha, estado
+            FROM aplicacion.cita
+        """;
+
+        case "Auditoría" -> sql = """
+            SELECT accion, tabla_afectada, fecha_hora
+            FROM aplicacion.auditoria
+            ORDER BY fecha_hora DESC
+        """;
+    }
+
+    modelo = conexion.getTableModel(sql);
+    jTable1.setModel(modelo);
+
+    }//GEN-LAST:event_cmbTablasActionPerformed
 
     /**
      * @param args the command line arguments
@@ -123,15 +203,21 @@ public class frm extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new frm().setVisible(true));
+        java.awt.EventQueue.invokeLater(() -> {
+            try {
+                new frm().setVisible(true);
+            } catch (SQLException ex) {
+                Logger.getLogger(frm.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
+    private javax.swing.JButton btnActualizar;
+    private javax.swing.JButton btnCrear;
+    private javax.swing.JButton btnEliminar;
+    private javax.swing.JComboBox<String> cmbTablas;
     private javax.swing.JButton jButton4;
-    private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
     // End of variables declaration//GEN-END:variables
