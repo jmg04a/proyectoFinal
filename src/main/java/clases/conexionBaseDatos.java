@@ -13,7 +13,7 @@ public class conexionBaseDatos {
 
     private static final String DB_USER = "APLICACION";
     private static final String DB_PASSWORD = "22130828Jose";
-    private static final String CONNECT_STRING = "(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.mx-queretaro-1.oraclecloud.com))(connect_data=(service_name=gf58054ee61183e_tbdproyecto_high.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))";
+    private static final String CONNECT_STRING = "(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.mx-queretaro-1.oraclecloud.com))(connect_data=(service_name=gf58054ee61183e_d5zs76cburgq15cr_high.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))";
     private static final String CONN_FACTORY = "oracle.jdbc.pool.OracleDataSource";
     private PoolDataSource pool;
 
@@ -47,6 +47,20 @@ public class conexionBaseDatos {
         }
     }
 
+    public boolean ejecutarSQL(String sql) {
+    try (Connection conn = pool.getConnection();
+         Statement stmt = conn.createStatement()) {
+        
+        // Ejecuta el comando
+        stmt.executeUpdate(sql);
+        return true; // Funcionó
+        
+    } catch (SQLException e) {
+        System.out.println("Error SQL: " + e.getMessage());
+        return false; // Falló
+    }
+}
+    
     public DefaultTableModel getTableModel(String query) {
         DefaultTableModel modelo = new DefaultTableModel();
 
@@ -94,5 +108,8 @@ public class conexionBaseDatos {
             return new DefaultTableModel(); // Retorna tabla vacía en caso de error
         }
     }
+    
+    
+    
 }
 
