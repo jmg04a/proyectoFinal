@@ -10,7 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
-import java.text.SimpleDateFormat;
+import javax.swing.DefaultComboBoxModel;
+import seguridad.PasswordUtil;
 
 /**
  *
@@ -19,7 +20,7 @@ import java.text.SimpleDateFormat;
 public class jDialogUsuarios extends javax.swing.JDialog {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogUsuarios.class.getName());
-    private int idPacienteActual = 0;
+    private int idUsuarioActual = 0;
     private conexionBaseDatos conexion;
     
     /**
@@ -30,65 +31,104 @@ public class jDialogUsuarios extends javax.swing.JDialog {
         initComponents();
     }
     
-    public jDialogUsuarios(java.awt.Frame parent, boolean modal,int id) {
+    public jDialogUsuarios(java.awt.Frame parent, boolean modal, int id) {
         super(parent, modal);
         initComponents();
-        
-        this.idPacienteActual = id; // Guardamos el ID
-        
+        this.idUsuarioActual = id;
+
         try {
-            conexion = new conexionBaseDatos(); // Preparamos la conexión
+            conexion = new conexionBaseDatos();
+            llenarComboRoles(); // Cargar lista de roles disponibles
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
         }
 
-        // Lógica para decidir qué mostrar
-        if (idPacienteActual > 0) {
-            // MODO EDICIÓN
-            lblTitulo.setText("EDITAR PACIENTE");
+        // Configurar Combo de Estado manualmente si no lo hiciste en diseño
+        if (cmbEstado.getItemCount() == 0) {
+            cmbEstado.addItem("ACTIVO");
+            cmbEstado.addItem("INACTIVO");
+        }
+
+        if (idUsuarioActual > 0) {
+            lblTitulo.setText("EDITAR USUARIO");
             btnGuardar.setText("Actualizar");
-            cargarDatosParaEditar(idPacienteActual); // Llenamos los campos
+            // El username suele ser único, a veces se bloquea su edición
+            // txtUsername.setEditable(false); 
+            cargarDatosParaEditar(idUsuarioActual);
         } else {
-            // MODO CREACIÓN
-            lblTitulo.setText("NUEVO PACIENTE");
+            lblTitulo.setText("NUEVO USUARIO");
             btnGuardar.setText("Guardar");
-            // Los campos aparecen vacíos por defecto
         }
     }
-
-    private void cargarDatosParaEditar(int id) {
-        String sql = "SELECT nombre, telefono, correo, direccion, fecha_nacimiento FROM aplicacion.paciente WHERE id_paciente = " + id;
+    
+    private class ItemCombo {
+        int id;
+        String texto;
+        public ItemCombo(int id, String texto) { this.id = id; this.texto = texto; }
+        @Override
+        public String toString() { return texto; }
+    }
+    
+    private void llenarComboRoles() {
+        String sql = "SELECT id_rol, nombre_rol FROM Rol ORDER BY nombre_rol";
+        DefaultComboBoxModel model = new DefaultComboBoxModel();
         
+        // --- IMPORTANTE: Limpiar el combo antes de llenarlo ---
+        // Esto borra el "1" o "Item 1" que pone NetBeans por defecto
+        cmbRol.removeAllItems(); 
+        // -----------------------------------------------------
+        
+        try (Connection conn = conexion.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                model.addElement(new ItemCombo(rs.getInt("id_rol"), rs.getString("nombre_rol")));
+            }
+            cmbRol.setModel(model);
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error cargando roles: " + e.getMessage());
+        }
+    }
+    
+    private void cargarDatosParaEditar(int id) {
+        // Necesitamos el Rol ID para seleccionarlo en el combo
+        String sql = "SELECT u.nombre, u.username, u.estado, ur.id_rol " +
+                     "FROM Usuario u " +
+                     "LEFT JOIN Usuario_Rol ur ON u.id_usuario = ur.id_usuario " +
+                     "WHERE u.id_usuario = " + id;
+
         try (Connection conn = conexion.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             if (rs.next()) {
-                // Asumiendo que tus variables se llaman txtNombre, txtTelefono, etc.
                 txtNombre.setText(rs.getString("nombre"));
-                txtTelefono.setText(rs.getString("telefono"));
-                txtCorreo.setText(rs.getString("correo"));
-                txtDireccion.setText(rs.getString("direccion"));
-                // 1. Obtienes la fecha de Oracle
-            java.sql.Date fechaBD = rs.getDate("fecha_nacimiento");
+                txtUsername.setText(rs.getString("username"));
+                
+                // Estado
+                cmbEstado.setSelectedItem(rs.getString("estado"));
 
-            // 2. La conviertes a Texto bonito (String)
-            if (fechaBD != null) {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-                String fechaTexto = sdf.format(fechaBD); 
+                // Seleccionar Rol en el Combo
+                int idRolBD = rs.getInt("id_rol");
+                for (int i = 0; i < cmbRol.getItemCount(); i++) {
+                    Object objeto = cmbRol.getItemAt(i);
+                   // Preguntamos: "¿Este objeto es realmente de tipo ItemCombo?"
+                    if (objeto instanceof ItemCombo) {
+                        // 3. Si es verdad, ahora sí es seguro convertirlo (Casting)
+                        ItemCombo item = (ItemCombo) objeto;
 
-                // 3. Ahora sí usas setText
-                txtFecha.setText(fechaTexto); // Se verá "25/12/2000"
-            } else {
-                txtFecha.setText(""); // Si es null, lo dejas vacío
-            }
-            if (fechaBD != null) {
-                txtFecha.setText(fechaBD.toString()); 
-            }
-            // ---------------------------
+                        if (item.id == idRolBD) {
+                            cmbRol.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+                }
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar datos: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error al cargar usuario: " + e.getMessage());
         }
     }
     
@@ -106,24 +146,24 @@ public class jDialogUsuarios extends javax.swing.JDialog {
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         btnGuardar = new javax.swing.JButton();
-        txtNombre = new javax.swing.JTextField();
-        txtTelefono = new javax.swing.JTextField();
-        txtCorreo = new javax.swing.JTextField();
-        txtDireccion = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
-        txtFecha = new javax.swing.JTextField();
         jButCancelar = new javax.swing.JButton();
         lblTitulo = new javax.swing.JLabel();
+        cmbEstado = new javax.swing.JComboBox<>();
+        cmbRol = new javax.swing.JComboBox<>();
+        txtNombre = new javax.swing.JTextField();
+        txtUsername = new javax.swing.JTextField();
+        txtPassword = new javax.swing.JPasswordField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
         jLabel1.setText("Nombre");
 
-        jLabel2.setText("Telefono");
+        jLabel2.setText("Estado");
 
-        jLabel3.setText("Correo");
+        jLabel3.setText("Username");
 
-        jLabel4.setText("Direccion");
+        jLabel4.setText("Contraseña");
 
         btnGuardar.setText("Insertar");
         btnGuardar.addActionListener(new java.awt.event.ActionListener() {
@@ -132,20 +172,7 @@ public class jDialogUsuarios extends javax.swing.JDialog {
             }
         });
 
-        txtDireccion.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtDireccionActionPerformed(evt);
-            }
-        });
-
-        jLabel5.setText("Fecha");
-
-        txtFecha.setText("25/12/2000");
-        txtFecha.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtFechaActionPerformed(evt);
-            }
-        });
+        jLabel5.setText("Rol");
 
         jButCancelar.setText("Cancelar");
         jButCancelar.addActionListener(new java.awt.event.ActionListener() {
@@ -156,81 +183,91 @@ public class jDialogUsuarios extends javax.swing.JDialog {
 
         lblTitulo.setText("Titulo ");
 
+        cmbEstado.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        cmbRol.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1" }));
+
+        txtPassword.setText("jPasswordField1");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(44, 44, 44)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(28, 28, 28)
-                        .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(63, Short.MAX_VALUE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel5)
-                                .addComponent(jLabel2)
-                                .addComponent(jLabel1)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtCorreo, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(txtNombre, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(txtFecha, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(txtTelefono, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(txtDireccion, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(26, 26, 26))))
-            .addGroup(layout.createSequentialGroup()
                 .addGap(163, 163, 163)
                 .addComponent(lblTitulo)
                 .addGap(0, 0, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(67, 67, 67)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel3)
+                            .addComponent(jLabel4)
+                            .addComponent(jLabel1)
+                            .addComponent(jLabel2)
+                            .addComponent(jLabel5))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(118, 118, 118)
+                                .addComponent(cmbRol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 65, Short.MAX_VALUE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(txtNombre, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(txtUsername, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(cmbEstado, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addGap(1, 1, 1)
+                                        .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addGap(53, 53, 53))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(44, 44, 44)
+                        .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(28, 28, 28)
+                        .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(19, 19, 19)
                 .addComponent(lblTitulo)
-                .addGap(14, 14, 14)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addGroup(layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 27, Short.MAX_VALUE)
                         .addComponent(jLabel1)
-                        .addGap(17, 17, 17)
-                        .addComponent(jLabel5)
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel2)
                         .addGap(18, 18, 18)
                         .addComponent(jLabel3)
                         .addGap(18, 18, 18)
                         .addComponent(jLabel4)
-                        .addGap(15, 15, 15))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGap(158, 158, 158)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(29, 29, 29))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(19, 19, 19)
                         .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(17, 17, 17)
-                        .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(txtDireccion, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 74, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(29, 29, 29))
+                        .addComponent(txtUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(cmbRol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel5))
+                        .addGap(14, 14, 14)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(cmbEstado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel2))
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void txtDireccionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtDireccionActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtDireccionActionPerformed
 
     private void jButCancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButCancelarActionPerformed
         // TODO add your handling code here:
@@ -239,76 +276,124 @@ public class jDialogUsuarios extends javax.swing.JDialog {
     }//GEN-LAST:event_jButCancelarActionPerformed
 
     private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
-        // TODO add your handling code here:
-            
-    // --- 1. VALIDACIONES BÁSICAS ---
-    // Verificamos que los campos obligatorios (Nombre y Fecha) no estén vacíos
-    if (txtNombre.getText().trim().isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "El nombre es obligatorio.");
-        return;
-    }
-    
-    if (txtFecha.getText().trim().isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "La fecha de nacimiento es obligatoria (dd/mm/yyyy).");
+        
+        
+    // 1. Validaciones de Texto
+    if (txtNombre.getText().trim().isEmpty() || txtUsername.getText().trim().isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Nombre y Usuario son obligatorios.");
         return;
     }
 
-    // --- 2. OBTENER DATOS DEL FORMULARIO ---
+    // 2. Obtener Contraseña correctamente (Desde JPasswordField)
+    char[] passArray = txtPassword.getPassword();
+    String password = new String(passArray); // Convertimos char[] a String
+
+    // Validar contraseña solo si es usuario nuevo
+    if (idUsuarioActual == 0 && password.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Debes asignar una contraseña al nuevo usuario.");
+        return;
+    }
+
+    // 3. Obtener Datos Generales
     String nombre = txtNombre.getText().trim();
-    String telefono = txtTelefono.getText().trim();
-    String correo = txtCorreo.getText().trim();
-    String direccion = txtDireccion.getText().trim();
-    String fechaTexto = txtFecha.getText().trim();
-
-    // --- 3. PREPARAR LA FECHA PARA ORACLE ---
-    // Usamos TO_DATE para convertir el texto '25/12/2000' a formato fecha real
-    String fechaSQL = "TO_DATE('" + fechaTexto + "', 'DD/MM/YYYY')";
-
-    String sql = "";
-
-    // --- 4. DECIDIR SI ES INSERTAR O ACTUALIZAR ---
+    String username = txtUsername.getText().trim();
     
-    // CASO A: NUEVO PACIENTE (INSERT)
-    if (idPacienteActual == 0) {
-        sql = "INSERT INTO aplicacion.paciente " +
-              "(id_paciente, nombre, fecha_nacimiento, telefono, correo, direccion) " +
-              "VALUES (aplicacion.seq_paciente.NEXTVAL, " +
-              "'" + nombre + "', " +
-              fechaSQL + ", " +     // Fecha va sin comillas simples extra porque es función
-              "'" + telefono + "', " +
-              "'" + correo + "', " +
-              "'" + direccion + "')";
-    } 
+    // Validación segura del Estado
+    if (cmbEstado.getSelectedItem() == null) {
+        JOptionPane.showMessageDialog(this, "Selecciona un estado.");
+        return;
+    }
+    String estado = cmbEstado.getSelectedItem().toString();
     
-    // CASO B: EDITAR PACIENTE EXISTENTE (UPDATE)
-    else {
-        sql = "UPDATE aplicacion.paciente SET " +
-              "nombre = '" + nombre + "', " +
-              "fecha_nacimiento = " + fechaSQL + ", " +
-              "telefono = '" + telefono + "', " +
-              "correo = '" + correo + "', " +
-              "direccion = '" + direccion + "' " +
-              "WHERE id_paciente = " + idPacienteActual;
+    // 4. Obtener Rol (VALIDACIÓN SEGURA DE TIPOS)
+    Object itemSeleccionado = cmbRol.getSelectedItem();
+    
+    if (itemSeleccionado == null) {
+        JOptionPane.showMessageDialog(this, "Selecciona un Rol.");
+        return;
     }
 
-    // --- 5. EJECUTAR ---
-    // Si la fecha está mal escrita (ej: "32/13/2020"), Oracle dará error y entrará al else
-    if (conexion.ejecutarSQL(sql)) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Datos guardados correctamente.");
-        this.dispose(); // Cerramos la ventana para volver a la tabla principal
+    int idRolSeleccionado = 0;
+    
+    // Verificamos si el objeto es realmente de tu clase ItemCombo
+    if (itemSeleccionado instanceof ItemCombo) {
+        idRolSeleccionado = ((ItemCombo) itemSeleccionado).id;
     } else {
-        javax.swing.JOptionPane.showMessageDialog(this, 
-            "Error al guardar.\nVerifica que la fecha tenga el formato dd/mm/yyyy (Ej: 25/12/2000).", 
-            "Error", 
-            javax.swing.JOptionPane.ERROR_MESSAGE);
+        // Si entra aquí, es porque se seleccionó el "Item 1" basura de NetBeans
+        JOptionPane.showMessageDialog(this, "Error: El rol seleccionado no es válido (Recarga la ventana).");
+        return;
+    }
+
+    // 5. Lógica de Base de Datos (Transacción)
+    Connection conn = null;
+
+    try {
+        conn = conexion.getConnection();
+        conn.setAutoCommit(false); // INICIAR TRANSACCIÓN
+        
+        Statement stmt = conn.createStatement();
+
+        // --- CASO 1: INSERTAR ---
+        if (idUsuarioActual == 0) {
+            String passHash = PasswordUtil.sha256(password);
+
+            // A. Obtener ID manual
+            ResultSet rsSeq = stmt.executeQuery("SELECT seq_usuario.NEXTVAL FROM DUAL");
+            rsSeq.next();
+            int nuevoId = rsSeq.getInt(1);
+            rsSeq.close();
+
+            // B. Insertar Usuario
+            String sqlUser = "INSERT INTO Usuario (id_usuario, nombre, username, password_hash, estado) VALUES (" +
+                    nuevoId + ", '" + nombre + "', '" + username + "', '" + passHash + "', '" + estado + "')";
+            stmt.executeUpdate(sqlUser);
+
+            // C. Insertar Relación Rol
+            String sqlRol = "INSERT INTO Usuario_Rol (id_usuario_rol, id_usuario, id_rol) VALUES (" +
+                    "seq_usuario_rol.NEXTVAL, " + nuevoId + ", " + idRolSeleccionado + ")";
+            stmt.executeUpdate(sqlRol);
+        } 
+        
+        // --- CASO 2: ACTUALIZAR ---
+        else {
+            // A. Actualizar Usuario
+            String sqlUser = "UPDATE Usuario SET nombre='" + nombre + "', username='" + username + "', estado='" + estado + "'";
+            
+            // Solo cambiamos la contraseña si el campo NO está vacío
+            if (!password.isEmpty()) {
+                String nuevoHash = PasswordUtil.sha256(password);
+                sqlUser += ", password_hash='" + nuevoHash + "'";
+            }
+            
+            sqlUser += " WHERE id_usuario=" + idUsuarioActual;
+            stmt.executeUpdate(sqlUser);
+
+            // B. Actualizar Relación Rol
+            // Primero intentamos actualizar
+            String sqlRolUpdate = "UPDATE Usuario_Rol SET id_rol=" + idRolSeleccionado + " WHERE id_usuario=" + idUsuarioActual;
+            int filasAfectadas = stmt.executeUpdate(sqlRolUpdate);
+            
+            // Si devuelve 0 es porque el usuario no tenía rol asignado (error de datos antiguos), así que hacemos insert
+            if (filasAfectadas == 0) {
+                 stmt.executeUpdate("INSERT INTO Usuario_Rol (id_usuario_rol, id_usuario, id_rol) VALUES (seq_usuario_rol.NEXTVAL, " + idUsuarioActual + ", " + idRolSeleccionado + ")");
+            }
+        }
+
+        conn.commit(); // CONFIRMAR CAMBIOS
+        JOptionPane.showMessageDialog(this, "Usuario guardado exitosamente.");
+        this.dispose();
+
+    } catch (Exception e) {
+        // SI FALLA, DESHACER TODO (ROLLBACK)
+        try { if (conn != null) conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+        e.printStackTrace(); // Imprimir error en consola para depurar
+        JOptionPane.showMessageDialog(this, "Error grave al guardar: " + e.getMessage());
+    } finally {
+        try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException ex) { ex.printStackTrace(); }
     }
 
         
     }//GEN-LAST:event_btnGuardarActionPerformed
-
-    private void txtFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtFechaActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtFechaActionPerformed
 
     /**
      * @param args the command line arguments
@@ -349,6 +434,8 @@ public class jDialogUsuarios extends javax.swing.JDialog {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnGuardar;
+    private javax.swing.JComboBox<String> cmbEstado;
+    private javax.swing.JComboBox<String> cmbRol;
     private javax.swing.JButton jButCancelar;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
@@ -356,10 +443,8 @@ public class jDialogUsuarios extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel lblTitulo;
-    private javax.swing.JTextField txtCorreo;
-    private javax.swing.JTextField txtDireccion;
-    private javax.swing.JTextField txtFecha;
     private javax.swing.JTextField txtNombre;
-    private javax.swing.JTextField txtTelefono;
+    private javax.swing.JPasswordField txtPassword;
+    private javax.swing.JTextField txtUsername;
     // End of variables declaration//GEN-END:variables
 }

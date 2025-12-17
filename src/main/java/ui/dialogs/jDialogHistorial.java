@@ -6,11 +6,13 @@ package ui.dialogs;
 
 import clases.conexionBaseDatos;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 import java.text.SimpleDateFormat;
+import javax.swing.DefaultComboBoxModel;
 
 /**
  *
@@ -19,13 +21,14 @@ import java.text.SimpleDateFormat;
 public class jDialogHistorial extends javax.swing.JDialog {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogHistorial.class.getName());
-    private int idPacienteActual = 0;
+    private int idHistorial = 0;
     private conexionBaseDatos conexion;
     
     /**
      * Creates new form jDialogPacientes
      */
     public jDialogHistorial(java.awt.Frame parent, boolean modal) {
+        
         super(parent, modal);
         initComponents();
     }
@@ -34,7 +37,7 @@ public class jDialogHistorial extends javax.swing.JDialog {
         super(parent, modal);
         initComponents();
         
-        this.idPacienteActual = id; // Guardamos el ID
+        this.idHistorial = id; // Guardamos el ID
         
         try {
             conexion = new conexionBaseDatos(); // Preparamos la conexión
@@ -43,48 +46,89 @@ public class jDialogHistorial extends javax.swing.JDialog {
         }
 
         // Lógica para decidir qué mostrar
-        if (idPacienteActual > 0) {
+        if (idHistorial > 0) {
             // MODO EDICIÓN
-            lblTitulo.setText("EDITAR PACIENTE");
+            lblTitulo.setText("EDITAR HISTORIAL");
             btnGuardar.setText("Actualizar");
-            cargarDatosParaEditar(idPacienteActual); // Llenamos los campos
+            cargarDatosParaEditar(idHistorial); // Llenamos los campos
         } else {
             // MODO CREACIÓN
-            lblTitulo.setText("NUEVO PACIENTE");
+            lblTitulo.setText("NUEVO HISTORIAL");
             btnGuardar.setText("Guardar");
             // Los campos aparecen vacíos por defecto
         }
     }
+    private void llenarCombos() {
+        try (Connection conn = conexion.getConnection();
+             Statement stmt = conn.createStatement()) {
 
+            // 1. Llenar Combo Doctores
+            // Hacemos JOIN con Usuario para mostrar el nombre real del doctor
+            String sqlDoc = "SELECT d.id_doctor, u.nombre, d.especialidad " +
+                            "FROM Doctor d JOIN Usuario u ON d.id_usuario = u.id_usuario " +
+                            "ORDER BY u.nombre";
+            
+            DefaultComboBoxModel modelDoc = new DefaultComboBoxModel();
+            try (ResultSet rs = stmt.executeQuery(sqlDoc)) {
+                while (rs.next()) {
+                    String etiqueta = rs.getString("nombre") + " (" + rs.getString("especialidad") + ")";
+                    modelDoc.addElement(new ItemCombo(rs.getInt("id_doctor"), etiqueta));
+                }
+            }
+            cmbDoctor.setModel(modelDoc);
+
+            // 2. Llenar Combo Pacientes
+            String sqlPac = "SELECT id_paciente, nombre FROM Paciente ORDER BY nombre";
+            DefaultComboBoxModel modelPac = new DefaultComboBoxModel();
+            try (ResultSet rs = stmt.executeQuery(sqlPac)) {
+                while (rs.next()) {
+                    modelPac.addElement(new ItemCombo(rs.getInt("id_paciente"), rs.getString("nombre")));
+                }
+            }
+            cmbPaciente.setModel(modelPac);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error cargando listas: " + e.getMessage());
+        }
+    }
+private class ItemCombo {
+        int id;
+        String texto;
+        public ItemCombo(int id, String texto) { this.id = id; this.texto = texto; }
+        @Override
+        public String toString() { return texto; }
+    }
     private void cargarDatosParaEditar(int id) {
-        String sql = "SELECT nombre, telefono, correo, direccion, fecha_nacimiento FROM aplicacion.paciente WHERE id_paciente = " + id;
-        
+String sql = "SELECT FECHA_CONSULTA, DIAGNOSTICO, NOTAS, ID_PACIENTE, ID_DOCTOR " +
+                 "FROM historial_clinico " +
+                 "WHERE id_historial = ?";        
         try (Connection conn = conexion.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             if (rs.next()) {
                 // Asumiendo que tus variables se llaman txtNombre, txtTelefono, etc.
-                txtNombre.setText(rs.getString("nombre"));
-                txtTelefono.setText(rs.getString("telefono"));
-                txtCorreo.setText(rs.getString("correo"));
-                txtDireccion.setText(rs.getString("direccion"));
-                // 1. Obtienes la fecha de Oracle
-            java.sql.Date fechaBD = rs.getDate("fecha_nacimiento");
-
-            // 2. La conviertes a Texto bonito (String)
+               // 📅 Fecha de consulta
+            java.sql.Date fechaBD = rs.getDate("FECHA_CONSULTA");
             if (fechaBD != null) {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-                String fechaTexto = sdf.format(fechaBD); 
+                txtFechaConsulta.setText(sdf.format(fechaBD));
+            }
 
-                // 3. Ahora sí usas setText
-                txtFecha.setText(fechaTexto); // Se verá "25/12/2000"
-            } else {
-                txtFecha.setText(""); // Si es null, lo dejas vacío
-            }
-            if (fechaBD != null) {
-                txtFecha.setText(fechaBD.toString()); 
-            }
+            // 🩺 Diagnóstico
+            txtDiagnostico.setText(rs.getString("DIAGNOSTICO"));
+
+            // 📝 Notas
+            txtNotas.setText(rs.getString("NOTAS"));
+
+            // 👤 Paciente
+            int idPaciente = rs.getInt("ID_PACIENTE");
+            llenarCombos();
+
+            // 
+            int idDoctor = rs.getInt("ID_DOCTOR");
+            
             // ---------------------------
             }
         } catch (SQLException e) {
@@ -106,24 +150,26 @@ public class jDialogHistorial extends javax.swing.JDialog {
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         btnGuardar = new javax.swing.JButton();
-        txtNombre = new javax.swing.JTextField();
-        txtTelefono = new javax.swing.JTextField();
-        txtCorreo = new javax.swing.JTextField();
-        txtDireccion = new javax.swing.JTextField();
+        txtidHistorial = new javax.swing.JTextField();
+        txtDiagnostico = new javax.swing.JTextField();
+        txtNotas = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
-        txtFecha = new javax.swing.JTextField();
+        txtFechaConsulta = new javax.swing.JTextField();
         jButCancelar = new javax.swing.JButton();
         lblTitulo = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        cmbPaciente = new javax.swing.JComboBox<>();
+        cmbDoctor = new javax.swing.JComboBox<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        jLabel1.setText("Nombre");
+        jLabel1.setText("ID-Historial");
 
-        jLabel2.setText("Telefono");
+        jLabel2.setText("Diagnostico");
 
-        jLabel3.setText("Correo");
+        jLabel3.setText("Notas");
 
-        jLabel4.setText("Direccion");
+        jLabel4.setText("ID-Paciente");
 
         btnGuardar.setText("Insertar");
         btnGuardar.addActionListener(new java.awt.event.ActionListener() {
@@ -132,18 +178,12 @@ public class jDialogHistorial extends javax.swing.JDialog {
             }
         });
 
-        txtDireccion.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtDireccionActionPerformed(evt);
-            }
-        });
+        jLabel5.setText("Fecha Consulta");
 
-        jLabel5.setText("Fecha");
-
-        txtFecha.setText("25/12/2000");
-        txtFecha.addActionListener(new java.awt.event.ActionListener() {
+        txtFechaConsulta.setText("25/12/2000");
+        txtFechaConsulta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtFechaActionPerformed(evt);
+                txtFechaConsultaActionPerformed(evt);
             }
         });
 
@@ -155,6 +195,8 @@ public class jDialogHistorial extends javax.swing.JDialog {
         });
 
         lblTitulo.setText("Titulo ");
+
+        jLabel6.setText("ID-Doctor");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -175,15 +217,18 @@ public class jDialogHistorial extends javax.swing.JDialog {
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel5)
                                 .addComponent(jLabel2)
-                                .addComponent(jLabel1)))
+                                .addComponent(jLabel1))
+                            .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtCorreo, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(txtNombre, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(txtFecha, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(txtTelefono, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(txtDireccion, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addComponent(txtNotas, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(txtidHistorial, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtFechaConsulta, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtDiagnostico, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(cmbPaciente, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(cmbDoctor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(26, 26, 26))))
             .addGroup(layout.createSequentialGroup()
                 .addGap(163, 163, 163)
@@ -197,7 +242,7 @@ public class jDialogHistorial extends javax.swing.JDialog {
                 .addComponent(lblTitulo)
                 .addGap(14, 14, 14)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel1)
                         .addGap(17, 17, 17)
                         .addComponent(jLabel5)
@@ -207,18 +252,21 @@ public class jDialogHistorial extends javax.swing.JDialog {
                         .addComponent(jLabel3)
                         .addGap(18, 18, 18)
                         .addComponent(jLabel4)
-                        .addGap(15, 15, 15))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(17, 17, 17)
-                        .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel6))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(txtidHistorial, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(txtFechaConsulta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(txtDiagnostico, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(txtDireccion, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 74, Short.MAX_VALUE)
+                        .addComponent(txtNotas, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(cmbPaciente, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(cmbDoctor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 69, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -227,10 +275,6 @@ public class jDialogHistorial extends javax.swing.JDialog {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void txtDireccionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtDireccionActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtDireccionActionPerformed
 
     private void jButCancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButCancelarActionPerformed
         // TODO add your handling code here:
@@ -241,74 +285,93 @@ public class jDialogHistorial extends javax.swing.JDialog {
     private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
         // TODO add your handling code here:
             
-    // --- 1. VALIDACIONES BÁSICAS ---
-    // Verificamos que los campos obligatorios (Nombre y Fecha) no estén vacíos
-    if (txtNombre.getText().trim().isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "El nombre es obligatorio.");
-        return;
-    }
-    
-    if (txtFecha.getText().trim().isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "La fecha de nacimiento es obligatoria (dd/mm/yyyy).");
+    // --- 1. VALIDACIONES ---
+    if (txtFechaConsulta.getText().trim().isEmpty()) {
+        JOptionPane.showMessageDialog(this, "La fecha de consulta es obligatoria.");
         return;
     }
 
-    // --- 2. OBTENER DATOS DEL FORMULARIO ---
-    String nombre = txtNombre.getText().trim();
-    String telefono = txtTelefono.getText().trim();
-    String correo = txtCorreo.getText().trim();
-    String direccion = txtDireccion.getText().trim();
-    String fechaTexto = txtFecha.getText().trim();
+    if (txtDiagnostico.getText().trim().isEmpty()) {
+        JOptionPane.showMessageDialog(this, "El diagnóstico es obligatorio.");
+        return;
+    }
 
-    // --- 3. PREPARAR LA FECHA PARA ORACLE ---
-    // Usamos TO_DATE para convertir el texto '25/12/2000' a formato fecha real
-    String fechaSQL = "TO_DATE('" + fechaTexto + "', 'DD/MM/YYYY')";
+    if (cmbPaciente.getSelectedIndex() == -1) {
+        JOptionPane.showMessageDialog(this, "Seleccione un paciente.");
+        return;
+    }
 
-    String sql = "";
+    if (cmbDoctor.getSelectedIndex() == -1) {
+        JOptionPane.showMessageDialog(this, "Seleccione un doctor.");
+        return;
+    }
 
-    // --- 4. DECIDIR SI ES INSERTAR O ACTUALIZAR ---
+    // --- 2. OBTENER DATOS ---
+    String diagnostico = txtDiagnostico.getText().trim();
+    String notas = txtNotas.getText().trim();
+
     
-    // CASO A: NUEVO PACIENTE (INSERT)
-    if (idPacienteActual == 0) {
-        sql = "INSERT INTO aplicacion.paciente " +
-              "(id_paciente, nombre, fecha_nacimiento, telefono, correo, direccion) " +
-              "VALUES (aplicacion.seq_paciente.NEXTVAL, " +
-              "'" + nombre + "', " +
-              fechaSQL + ", " +     // Fecha va sin comillas simples extra porque es función
-              "'" + telefono + "', " +
-              "'" + correo + "', " +
-              "'" + direccion + "')";
-    } 
-    
-    // CASO B: EDITAR PACIENTE EXISTENTE (UPDATE)
-    else {
-        sql = "UPDATE aplicacion.paciente SET " +
-              "nombre = '" + nombre + "', " +
-              "fecha_nacimiento = " + fechaSQL + ", " +
-              "telefono = '" + telefono + "', " +
-              "correo = '" + correo + "', " +
-              "direccion = '" + direccion + "' " +
-              "WHERE id_paciente = " + idPacienteActual;
+    int idDoctor = ((jDialogHistorial.ItemCombo) cmbDoctor.getSelectedItem()).id;
+    int idPaciente = ((jDialogHistorial.ItemCombo) cmbPaciente.getSelectedItem()).id;
+
+    // --- 3. FECHA ---
+    java.sql.Date fechaSQL;
+    try {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        java.util.Date fecha = sdf.parse(txtFechaConsulta.getText().trim());
+        fechaSQL = new java.sql.Date(fecha.getTime());
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Formato de fecha inválido. Use dd/MM/yyyy.");
+        return;
+    }
+
+    // --- 4. INSERT O UPDATE ---
+    String sql;
+
+    if (idHistorial == 0) {
+        // 🟢 INSERT
+        sql = "INSERT INTO historial_clinico " +
+              "(id_historial, fecha_consulta, diagnostico, notas, id_paciente, id_doctor) " +
+              "VALUES (seq_historial.NEXTVAL, ?, ?, ?, ?, ?)";
+    } else {
+        // 🔵 UPDATE
+        sql = "UPDATE historial_clinico SET " +
+              "fecha_consulta = ?, diagnostico = ?, notas = ?, id_paciente = ?, id_doctor = ? " +
+              "WHERE id_historial = ?";
     }
 
     // --- 5. EJECUTAR ---
-    // Si la fecha está mal escrita (ej: "32/13/2020"), Oracle dará error y entrará al else
-    if (conexion.ejecutarSQL(sql)) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Datos guardados correctamente.");
-        this.dispose(); // Cerramos la ventana para volver a la tabla principal
-    } else {
-        javax.swing.JOptionPane.showMessageDialog(this, 
-            "Error al guardar.\nVerifica que la fecha tenga el formato dd/mm/yyyy (Ej: 25/12/2000).", 
-            "Error", 
-            javax.swing.JOptionPane.ERROR_MESSAGE);
+    try (Connection conn = conexion.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        ps.setDate(1, fechaSQL);
+        ps.setString(2, diagnostico);
+        ps.setString(3, notas);
+        ps.setInt(4, idPaciente);
+        ps.setInt(5, idDoctor);
+
+        if (idHistorial > 0) {
+            ps.setInt(6, idHistorial);
+        }
+
+        ps.executeUpdate();
+
+        JOptionPane.showMessageDialog(this, "Historial guardado correctamente.");
+        dispose();
+
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this,
+                "Error al guardar historial: " + e.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
     }
+
 
         
     }//GEN-LAST:event_btnGuardarActionPerformed
 
-    private void txtFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtFechaActionPerformed
+    private void txtFechaConsultaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtFechaConsultaActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txtFechaActionPerformed
+    }//GEN-LAST:event_txtFechaConsultaActionPerformed
 
     /**
      * @param args the command line arguments
@@ -349,17 +412,19 @@ public class jDialogHistorial extends javax.swing.JDialog {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnGuardar;
+    private javax.swing.JComboBox<String> cmbDoctor;
+    private javax.swing.JComboBox<String> cmbPaciente;
     private javax.swing.JButton jButCancelar;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel lblTitulo;
-    private javax.swing.JTextField txtCorreo;
-    private javax.swing.JTextField txtDireccion;
-    private javax.swing.JTextField txtFecha;
-    private javax.swing.JTextField txtNombre;
-    private javax.swing.JTextField txtTelefono;
+    private javax.swing.JTextField txtDiagnostico;
+    private javax.swing.JTextField txtFechaConsulta;
+    private javax.swing.JTextField txtNotas;
+    private javax.swing.JTextField txtidHistorial;
     // End of variables declaration//GEN-END:variables
 }

@@ -57,7 +57,7 @@ public class jDialogPacientes extends javax.swing.JDialog {
     }
 
     private void cargarDatosParaEditar(int id) {
-        String sql = "SELECT nombre, telefono, correo, direccion, fecha_nacimiento FROM aplicacion.paciente WHERE id_paciente = " + id;
+        String sql = "SELECT nombre, telefono, correo, direccion, fecha_nacimiento FROM paciente WHERE id_paciente = " + id;
         
         try (Connection conn = conexion.getConnection();
              Statement stmt = conn.createStatement();
@@ -270,9 +270,9 @@ public class jDialogPacientes extends javax.swing.JDialog {
     
     // CASO A: NUEVO PACIENTE (INSERT)
     if (idPacienteActual == 0) {
-        sql = "INSERT INTO aplicacion.paciente " +
+        sql = "INSERT INTO paciente " +
               "(id_paciente, nombre, fecha_nacimiento, telefono, correo, direccion) " +
-              "VALUES (aplicacion.seq_paciente.NEXTVAL, " +
+              "VALUES (seq_paciente.NEXTVAL, " +
               "'" + nombre + "', " +
               fechaSQL + ", " +     // Fecha va sin comillas simples extra porque es función
               "'" + telefono + "', " +
@@ -282,7 +282,7 @@ public class jDialogPacientes extends javax.swing.JDialog {
     
     // CASO B: EDITAR PACIENTE EXISTENTE (UPDATE)
     else {
-        sql = "UPDATE aplicacion.paciente SET " +
+        sql = "UPDATE paciente SET " +
               "nombre = '" + nombre + "', " +
               "fecha_nacimiento = " + fechaSQL + ", " +
               "telefono = '" + telefono + "', " +
