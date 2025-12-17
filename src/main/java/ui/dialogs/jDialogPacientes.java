@@ -4,6 +4,14 @@
  */
 package ui.dialogs;
 
+import clases.conexionBaseDatos;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.swing.JOptionPane;
+import java.text.SimpleDateFormat;
+
 /**
  *
  * @author jose
@@ -11,7 +19,8 @@ package ui.dialogs;
 public class jDialogPacientes extends javax.swing.JDialog {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogPacientes.class.getName());
-    private int id=-1;
+    private int idPacienteActual = 0;
+    private conexionBaseDatos conexion;
     
     /**
      * Creates new form jDialogPacientes
@@ -24,9 +33,65 @@ public class jDialogPacientes extends javax.swing.JDialog {
     public jDialogPacientes(java.awt.Frame parent, boolean modal,int id) {
         super(parent, modal);
         initComponents();
-        this.id=id;
+        
+        this.idPacienteActual = id; // Guardamos el ID
+        
+        try {
+            conexion = new conexionBaseDatos(); // Preparamos la conexión
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
+        }
+
+        // Lógica para decidir qué mostrar
+        if (idPacienteActual > 0) {
+            // MODO EDICIÓN
+            lblTitulo.setText("EDITAR PACIENTE");
+            btnGuardar.setText("Actualizar");
+            cargarDatosParaEditar(idPacienteActual); // Llenamos los campos
+        } else {
+            // MODO CREACIÓN
+            lblTitulo.setText("NUEVO PACIENTE");
+            btnGuardar.setText("Guardar");
+            // Los campos aparecen vacíos por defecto
+        }
     }
 
+    private void cargarDatosParaEditar(int id) {
+        String sql = "SELECT nombre, telefono, correo, direccion, fecha_nacimiento FROM aplicacion.paciente WHERE id_paciente = " + id;
+        
+        try (Connection conn = conexion.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            if (rs.next()) {
+                // Asumiendo que tus variables se llaman txtNombre, txtTelefono, etc.
+                txtNombre.setText(rs.getString("nombre"));
+                txtTelefono.setText(rs.getString("telefono"));
+                txtCorreo.setText(rs.getString("correo"));
+                txtDireccion.setText(rs.getString("direccion"));
+                // 1. Obtienes la fecha de Oracle
+            java.sql.Date fechaBD = rs.getDate("fecha_nacimiento");
+
+            // 2. La conviertes a Texto bonito (String)
+            if (fechaBD != null) {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+                String fechaTexto = sdf.format(fechaBD); 
+
+                // 3. Ahora sí usas setText
+                txtFecha.setText(fechaTexto); // Se verá "25/12/2000"
+            } else {
+                txtFecha.setText(""); // Si es null, lo dejas vacío
+            }
+            if (fechaBD != null) {
+                txtFecha.setText(fechaBD.toString()); 
+            }
+            // ---------------------------
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar datos: " + e.getMessage());
+        }
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -40,7 +105,7 @@ public class jDialogPacientes extends javax.swing.JDialog {
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
-        jButton = new javax.swing.JButton();
+        btnGuardar = new javax.swing.JButton();
         txtNombre = new javax.swing.JTextField();
         txtTelefono = new javax.swing.JTextField();
         txtCorreo = new javax.swing.JTextField();
@@ -48,6 +113,7 @@ public class jDialogPacientes extends javax.swing.JDialog {
         jLabel5 = new javax.swing.JLabel();
         txtFecha = new javax.swing.JTextField();
         jButCancelar = new javax.swing.JButton();
+        lblTitulo = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -59,10 +125,10 @@ public class jDialogPacientes extends javax.swing.JDialog {
 
         jLabel4.setText("Direccion");
 
-        jButton.setText("Insertar");
-        jButton.addActionListener(new java.awt.event.ActionListener() {
+        btnGuardar.setText("Insertar");
+        btnGuardar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButtonActionPerformed(evt);
+                btnGuardarActionPerformed(evt);
             }
         });
 
@@ -74,7 +140,12 @@ public class jDialogPacientes extends javax.swing.JDialog {
 
         jLabel5.setText("Fecha");
 
-        txtFecha.setText("jTextField1");
+        txtFecha.setText("25/12/2000");
+        txtFecha.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtFechaActionPerformed(evt);
+            }
+        });
 
         jButCancelar.setText("Cancelar");
         jButCancelar.addActionListener(new java.awt.event.ActionListener() {
@@ -82,6 +153,8 @@ public class jDialogPacientes extends javax.swing.JDialog {
                 jButCancelarActionPerformed(evt);
             }
         });
+
+        lblTitulo.setText("Titulo ");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -91,7 +164,7 @@ public class jDialogPacientes extends javax.swing.JDialog {
                 .addGap(44, 44, 44)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jButton, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(28, 28, 28)
                         .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addContainerGap(63, Short.MAX_VALUE))
@@ -105,17 +178,24 @@ public class jDialogPacientes extends javax.swing.JDialog {
                                 .addComponent(jLabel1)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtNombre, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtTelefono, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtCorreo, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtDireccion, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtFecha, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(46, 46, 46))))
+                            .addComponent(txtCorreo, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(txtNombre, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(txtFecha, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(txtTelefono, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(txtDireccion, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(26, 26, 26))))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(163, 163, 163)
+                .addComponent(lblTitulo)
+                .addGap(0, 0, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap(80, Short.MAX_VALUE)
+                .addGap(19, 19, 19)
+                .addComponent(lblTitulo)
+                .addGap(14, 14, 14)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addComponent(jLabel1)
@@ -127,21 +207,21 @@ public class jDialogPacientes extends javax.swing.JDialog {
                         .addComponent(jLabel3)
                         .addGap(18, 18, 18)
                         .addComponent(jLabel4)
-                        .addGap(58, 58, 58))
+                        .addGap(15, 15, 15))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(17, 17, 17)
-                        .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
+                        .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(17, 17, 17)
                         .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(txtDireccion, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(43, 43, 43)))
+                        .addComponent(txtDireccion, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 74, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(btnGuardar, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(29, 29, 29))
         );
 
@@ -158,9 +238,77 @@ public class jDialogPacientes extends javax.swing.JDialog {
         this.dispose();
     }//GEN-LAST:event_jButCancelarActionPerformed
 
-    private void jButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonActionPerformed
+    private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jButtonActionPerformed
+            
+    // --- 1. VALIDACIONES BÁSICAS ---
+    // Verificamos que los campos obligatorios (Nombre y Fecha) no estén vacíos
+    if (txtNombre.getText().trim().isEmpty()) {
+        javax.swing.JOptionPane.showMessageDialog(this, "El nombre es obligatorio.");
+        return;
+    }
+    
+    if (txtFecha.getText().trim().isEmpty()) {
+        javax.swing.JOptionPane.showMessageDialog(this, "La fecha de nacimiento es obligatoria (dd/mm/yyyy).");
+        return;
+    }
+
+    // --- 2. OBTENER DATOS DEL FORMULARIO ---
+    String nombre = txtNombre.getText().trim();
+    String telefono = txtTelefono.getText().trim();
+    String correo = txtCorreo.getText().trim();
+    String direccion = txtDireccion.getText().trim();
+    String fechaTexto = txtFecha.getText().trim();
+
+    // --- 3. PREPARAR LA FECHA PARA ORACLE ---
+    // Usamos TO_DATE para convertir el texto '25/12/2000' a formato fecha real
+    String fechaSQL = "TO_DATE('" + fechaTexto + "', 'DD/MM/YYYY')";
+
+    String sql = "";
+
+    // --- 4. DECIDIR SI ES INSERTAR O ACTUALIZAR ---
+    
+    // CASO A: NUEVO PACIENTE (INSERT)
+    if (idPacienteActual == 0) {
+        sql = "INSERT INTO aplicacion.paciente " +
+              "(id_paciente, nombre, fecha_nacimiento, telefono, correo, direccion) " +
+              "VALUES (aplicacion.seq_paciente.NEXTVAL, " +
+              "'" + nombre + "', " +
+              fechaSQL + ", " +     // Fecha va sin comillas simples extra porque es función
+              "'" + telefono + "', " +
+              "'" + correo + "', " +
+              "'" + direccion + "')";
+    } 
+    
+    // CASO B: EDITAR PACIENTE EXISTENTE (UPDATE)
+    else {
+        sql = "UPDATE aplicacion.paciente SET " +
+              "nombre = '" + nombre + "', " +
+              "fecha_nacimiento = " + fechaSQL + ", " +
+              "telefono = '" + telefono + "', " +
+              "correo = '" + correo + "', " +
+              "direccion = '" + direccion + "' " +
+              "WHERE id_paciente = " + idPacienteActual;
+    }
+
+    // --- 5. EJECUTAR ---
+    // Si la fecha está mal escrita (ej: "32/13/2020"), Oracle dará error y entrará al else
+    if (conexion.ejecutarSQL(sql)) {
+        javax.swing.JOptionPane.showMessageDialog(this, "Datos guardados correctamente.");
+        this.dispose(); // Cerramos la ventana para volver a la tabla principal
+    } else {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "Error al guardar.\nVerifica que la fecha tenga el formato dd/mm/yyyy (Ej: 25/12/2000).", 
+            "Error", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+    }
+
+        
+    }//GEN-LAST:event_btnGuardarActionPerformed
+
+    private void txtFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtFechaActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtFechaActionPerformed
 
     /**
      * @param args the command line arguments
@@ -200,13 +348,14 @@ public class jDialogPacientes extends javax.swing.JDialog {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnGuardar;
     private javax.swing.JButton jButCancelar;
-    private javax.swing.JButton jButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel lblTitulo;
     private javax.swing.JTextField txtCorreo;
     private javax.swing.JTextField txtDireccion;
     private javax.swing.JTextField txtFecha;

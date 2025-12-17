@@ -16,21 +16,21 @@ import java.text.SimpleDateFormat;
  *
  * @author jose
  */
-public class jDialogCitas extends javax.swing.JDialog {
+public class jDialogUsuarios extends javax.swing.JDialog {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogCitas.class.getName());
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogUsuarios.class.getName());
     private int idPacienteActual = 0;
     private conexionBaseDatos conexion;
     
     /**
      * Creates new form jDialogPacientes
      */
-    public jDialogCitas(java.awt.Frame parent, boolean modal) {
+    public jDialogUsuarios(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
     }
     
-    public jDialogCitas(java.awt.Frame parent, boolean modal,int id) {
+    public jDialogUsuarios(java.awt.Frame parent, boolean modal,int id) {
         super(parent, modal);
         initComponents();
         
@@ -335,7 +335,7 @@ public class jDialogCitas extends javax.swing.JDialog {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                jDialogCitas dialog = new jDialogCitas(new javax.swing.JFrame(), true);
+                jDialogUsuarios dialog = new jDialogUsuarios(new javax.swing.JFrame(), true);
                 dialog.addWindowListener(new java.awt.event.WindowAdapter() {
                     @Override
                     public void windowClosing(java.awt.event.WindowEvent e) {
