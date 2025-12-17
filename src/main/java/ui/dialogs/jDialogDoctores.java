@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 import java.text.SimpleDateFormat;
+import javax.swing.DefaultComboBoxModel;
 
 /**
  *
@@ -20,7 +21,6 @@ public class jDialogDoctores extends javax.swing.JDialog {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogDoctores.class.getName());
     private int idDoctorActual = 0;
-
     private conexionBaseDatos conexion;
     
     /**
@@ -31,70 +31,90 @@ public class jDialogDoctores extends javax.swing.JDialog {
         initComponents();
     }
     
-    public jDialogDoctores(java.awt.Frame parent, boolean modal,int id) {
+    public jDialogDoctores(java.awt.Frame parent, boolean modal, int id) {
         super(parent, modal);
         initComponents();
-        
-        this.idDoctorActual = id;// Guardamos el ID
-        
+        this.idDoctorActual = id;
+
         try {
-            conexion = new conexionBaseDatos(); // Preparamos la conexión
+            conexion = new conexionBaseDatos();
+            llenarComboUsuarios(); // Cargar usuarios disponibles
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
         }
 
-        // Lógica para decidir qué mostrar
         if (idDoctorActual > 0) {
-            // MODO EDICIÓN
             lblTitulo.setText("EDITAR DOCTOR");
             btnGuardar.setText("Actualizar");
-            cargarDatosParaEditar(idDoctorActual); // Llenamos los campos
+            cargarDatosParaEditar(idDoctorActual);
         } else {
-            // MODO CREACIÓN
             lblTitulo.setText("NUEVO DOCTOR");
             btnGuardar.setText("Guardar");
-            // Los campos aparecen vacíos por defecto
         }
     }
 
-    private void cargarDatosParaEditar(int id) {
-        String sql = "SELECT id_usuario, especialidad, cedula_profesional, horario\n" +
-"FROM doctor\n" +
-"WHERE id_doctor = " + id;
+    private class ItemCombo {
+        int id;
+        String texto;
+        public ItemCombo(int id, String texto) { this.id = id; this.texto = texto; }
+        @Override
+        public String toString() { return texto; }
+    }
+    
+    private void llenarComboUsuarios() {
+        // Traemos todos los usuarios (puedes filtrar por rol si quieres, ej: WHERE r.nombre_rol = 'DOCTOR')
+        String sql = "SELECT id_usuario, nombre FROM Usuario ORDER BY nombre";
+        DefaultComboBoxModel model = new DefaultComboBoxModel();
         
+        // Limpiamos basura de NetBeans
+        cmbUsuario.removeAllItems();
+
+        try (Connection conn = conexion.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                model.addElement(new ItemCombo(rs.getInt("id_usuario"), rs.getString("nombre")));
+            }
+            cmbUsuario.setModel(model);
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error cargando usuarios: " + e.getMessage());
+        }
+    }
+    
+    private void cargarDatosParaEditar(int id) {
+        String sql = "SELECT id_usuario, especialidad, cedula_profesional, horario " +
+                     "FROM Doctor WHERE id_doctor = " + id;
+
         try (Connection conn = conexion.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             if (rs.next()) {
-                // Asumiendo que tus variables se llaman txtNombre, txtTelefono, etc.
-                txtFecha.setText(rs.getString("id_usuario"));
-                txtTelefono.setText(rs.getString("especialidad"));
-                txtCorreo.setText(rs.getString("cedula_profesional"));
-                txtDireccion.setText(rs.getString("horario"));
-                // 1. Obtienes la fecha de Oracle
-            java.sql.Date fechaBD = rs.getDate("fecha_nacimiento");
+                txtEspecialidad.setText(rs.getString("especialidad"));
+                txtCedula.setText(rs.getString("cedula_profesional"));
+                txtHorario.setText(rs.getString("horario"));
 
-            // 2. La conviertes a Texto bonito (String)
-            if (fechaBD != null) {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-                String fechaTexto = sdf.format(fechaBD); 
-
-                // 3. Ahora sí usas setText
-                txtTelefono.setText(fechaTexto); // Se verá "25/12/2000"
-            } else {
-                txtTelefono.setText(""); // Si es null, lo dejas vacío
-            }
-            if (fechaBD != null) {
-                txtTelefono.setText(fechaBD.toString()); 
-            }
-            // ---------------------------
+                // Seleccionar Usuario en el Combo
+                int idUsuarioBD = rs.getInt("id_usuario");
+                
+                for (int i = 0; i < cmbUsuario.getItemCount(); i++) {
+                    Object obj = cmbUsuario.getItemAt(i);
+                    if (obj instanceof ItemCombo) {
+                        ItemCombo item = (ItemCombo) obj;
+                        if (item.id == idUsuarioBD) {
+                            cmbUsuario.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+                }
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar datos: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error al cargar doctor: " + e.getMessage());
         }
     }
-    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -108,13 +128,13 @@ public class jDialogDoctores extends javax.swing.JDialog {
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         btnGuardar = new javax.swing.JButton();
-        txtFecha = new javax.swing.JTextField();
-        txtCorreo = new javax.swing.JTextField();
-        txtDireccion = new javax.swing.JTextField();
+        txtCedula = new javax.swing.JTextField();
+        txtHorario = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
-        txtTelefono = new javax.swing.JTextField();
+        txtEspecialidad = new javax.swing.JTextField();
         jButCancelar = new javax.swing.JButton();
         lblTitulo = new javax.swing.JLabel();
+        cmbUsuario = new javax.swing.JComboBox<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -131,17 +151,11 @@ public class jDialogDoctores extends javax.swing.JDialog {
             }
         });
 
-        txtFecha.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtFechaActionPerformed(evt);
-            }
-        });
-
         jLabel5.setText("ID-Usuario");
 
-        txtTelefono.addActionListener(new java.awt.event.ActionListener() {
+        txtEspecialidad.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtTelefonoActionPerformed(evt);
+                txtEspecialidadActionPerformed(evt);
             }
         });
 
@@ -153,6 +167,8 @@ public class jDialogDoctores extends javax.swing.JDialog {
         });
 
         lblTitulo.setText("Doctores");
+
+        cmbUsuario.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -182,11 +198,12 @@ public class jDialogDoctores extends javax.swing.JDialog {
                             .addComponent(jLabel2))))
                 .addGap(18, 18, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(txtDireccion, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(txtFecha, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(txtTelefono, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(txtCorreo, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(txtHorario, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(txtEspecialidad, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtCedula, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addComponent(cmbUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(26, 26, 26))
         );
         layout.setVerticalGroup(
@@ -199,20 +216,20 @@ public class jDialogDoctores extends javax.swing.JDialog {
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(cmbUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(18, 18, 18)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtEspecialidad, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel2))
                                 .addGap(17, 17, 17)
-                                .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(txtCedula, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(layout.createSequentialGroup()
                                 .addGap(2, 2, 2)
                                 .addComponent(jLabel5)
                                 .addGap(67, 67, 67)
                                 .addComponent(jLabel3)))
                         .addGap(18, 18, 18)
-                        .addComponent(txtDireccion, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(txtHorario, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jLabel4))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 96, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -232,80 +249,68 @@ public class jDialogDoctores extends javax.swing.JDialog {
 
     private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
         // TODO add your handling code here:
-            
-    // --- 1. VALIDACIONES BÁSICAS ---
-    // Verificamos que los campos obligatorios (Nombre y Fecha) no estén vacíos
-    if (txtFecha.getText().trim().isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "El ID de Usuario es obligatorio.");
-        return;
-    }
-    if (txtFecha.getText().trim().isEmpty() ||
-    txtTelefono.getText().trim().isEmpty() ||
-    txtCorreo.getText().trim().isEmpty() ||
-    txtDireccion.getText().trim().isEmpty()) {
+        // A. Validaciones
+        if (txtEspecialidad.getText().trim().isEmpty() || txtCedula.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Especialidad y Cédula son obligatorias.");
+            return;
+        }
 
-    JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios");
-    return;
-}
+        // B. Obtener Datos
+        String especialidad = txtEspecialidad.getText().trim();
+        String cedula = txtCedula.getText().trim();
+        String horario = txtHorario.getText().trim();
+        
+        // Obtener ID del Usuario seleccionado
+        Object itemSeleccionado = cmbUsuario.getSelectedItem();
+        if (itemSeleccionado == null) {
+            JOptionPane.showMessageDialog(this, "Debes asignar un Usuario al Doctor.");
+            return;
+        }
+        
+        int idUsuarioSeleccionado = 0;
+        if (itemSeleccionado instanceof ItemCombo) {
+            idUsuarioSeleccionado = ((ItemCombo) itemSeleccionado).id;
+        } else {
+             JOptionPane.showMessageDialog(this, "Error en selección de usuario.");
+             return;
+        }
 
-    
-    // --- 2. OBTENER DATOS DEL FORMULARIO ---
-    int idUsuario = Integer.parseInt(txtFecha.getText().trim());
-    String especialidad = txtTelefono.getText().trim();
-    String cedula = txtCorreo.getText().trim();
-    String horario = txtDireccion.getText().trim();
+        String sql = "";
 
+        // C. Decidir Query (INSERT / UPDATE)
+        if (idDoctorActual == 0) {
+            // INSERT
+            sql = "INSERT INTO Doctor (id_doctor, id_usuario, especialidad, cedula_profesional, horario) VALUES (" +
+                  "seq_doctor.NEXTVAL, " +
+                  idUsuarioSeleccionado + ", " +
+                  "'" + especialidad + "', " +
+                  "'" + cedula + "', " +
+                  "'" + horario + "')";
+        } else {
+            // UPDATE
+            sql = "UPDATE Doctor SET " +
+                  "id_usuario = " + idUsuarioSeleccionado + ", " +
+                  "especialidad = '" + especialidad + "', " +
+                  "cedula_profesional = '" + cedula + "', " +
+                  "horario = '" + horario + "' " +
+                  "WHERE id_doctor = " + idDoctorActual;
+        }
 
-    // --- 3. PREPARAR LA FECHA PARA ORACLE ---
-    // Usamos TO_DATE para convertir el texto '25/12/2000' a formato fecha real
-    
-
-    String sql;
-
-if (idDoctorActual == 0) {
-    // INSERTAR
-    sql = "INSERT INTO doctor (" +
-          "id_doctor, id_usuario, especialidad, cedula_profesional, horario) " +
-          "VALUES (" +
-          "seq_doctor.NEXTVAL, " +
-          idUsuario + ", " +
-          "'" + especialidad + "', " +
-          "'" + cedula + "', " +
-          "'" + horario + "')";
-} else {
-    // ACTUALIZAR
-    sql = "UPDATE doctor SET " +
-          "id_usuario = " + idUsuario + ", " +
-          "especialidad = '" + especialidad + "', " +
-          "cedula_profesional = '" + cedula + "', " +
-          "horario = '" + horario + "' " +
-          "WHERE id_doctor = " + idDoctorActual;
-}
-
-
-
-    // --- 5. EJECUTAR ---
-    // Si la fecha está mal escrita (ej: "32/13/2020"), Oracle dará error y entrará al else
-    if (conexion.ejecutarSQL(sql)) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Datos guardados correctamente.");
-        this.dispose(); // Cerramos la ventana para volver a la tabla principal
-    } else {
-        javax.swing.JOptionPane.showMessageDialog(this, 
-            "Error al guardar.\nVerifica que la fecha tenga el formato dd/mm/yyyy (Ej: 25/12/2000).", 
-            "Error", 
-            javax.swing.JOptionPane.ERROR_MESSAGE);
-    }
-
+        // D. Ejecutar
+        if (conexion.ejecutarSQL(sql)) {
+            JOptionPane.showMessageDialog(this, "Doctor guardado correctamente.");
+            this.dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, 
+                "Error al guardar.\nPosible causa: La Cédula Profesional ya existe (debe ser única).", 
+                "Error", JOptionPane.ERROR_MESSAGE);
+        }
         
     }//GEN-LAST:event_btnGuardarActionPerformed
 
-    private void txtTelefonoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtTelefonoActionPerformed
+    private void txtEspecialidadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtEspecialidadActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txtTelefonoActionPerformed
-
-    private void txtFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtFechaActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtFechaActionPerformed
+    }//GEN-LAST:event_txtEspecialidadActionPerformed
 
     /**
      * @param args the command line arguments
@@ -346,15 +351,15 @@ if (idDoctorActual == 0) {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnGuardar;
+    private javax.swing.JComboBox<String> cmbUsuario;
     private javax.swing.JButton jButCancelar;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel lblTitulo;
-    private javax.swing.JTextField txtCorreo;
-    private javax.swing.JTextField txtDireccion;
-    private javax.swing.JTextField txtFecha;
-    private javax.swing.JTextField txtTelefono;
+    private javax.swing.JTextField txtCedula;
+    private javax.swing.JTextField txtEspecialidad;
+    private javax.swing.JTextField txtHorario;
     // End of variables declaration//GEN-END:variables
 }
