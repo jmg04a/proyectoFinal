@@ -8,20 +8,20 @@ package ui.dialogs;
  *
  * @author jose
  */
-public class jDialogPacientes extends javax.swing.JDialog {
+public class jDialogCitas extends javax.swing.JDialog {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogPacientes.class.getName());
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(jDialogCitas.class.getName());
     private int id=-1;
     
     /**
      * Creates new form jDialogPacientes
      */
-    public jDialogPacientes(java.awt.Frame parent, boolean modal) {
+    public jDialogCitas(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
     }
     
-    public jDialogPacientes(java.awt.Frame parent, boolean modal,int id) {
+    public jDialogCitas(java.awt.Frame parent, boolean modal,int id) {
         super(parent, modal);
         initComponents();
         this.id=id;
@@ -60,11 +60,6 @@ public class jDialogPacientes extends javax.swing.JDialog {
         jLabel4.setText("Direccion");
 
         jButton.setText("Insertar");
-        jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButtonActionPerformed(evt);
-            }
-        });
 
         txtDireccion.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -92,9 +87,9 @@ public class jDialogPacientes extends javax.swing.JDialog {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jButton, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(28, 28, 28)
+                        .addGap(18, 18, 18)
                         .addComponent(jButCancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(63, Short.MAX_VALUE))
+                        .addContainerGap(73, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.LEADING)
@@ -158,10 +153,6 @@ public class jDialogPacientes extends javax.swing.JDialog {
         this.dispose();
     }//GEN-LAST:event_jButCancelarActionPerformed
 
-    private void jButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButtonActionPerformed
-
     /**
      * @param args the command line arguments
      */
@@ -187,7 +178,7 @@ public class jDialogPacientes extends javax.swing.JDialog {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                jDialogPacientes dialog = new jDialogPacientes(new javax.swing.JFrame(), true);
+                jDialogCitas dialog = new jDialogCitas(new javax.swing.JFrame(), true);
                 dialog.addWindowListener(new java.awt.event.WindowAdapter() {
                     @Override
                     public void windowClosing(java.awt.event.WindowEvent e) {

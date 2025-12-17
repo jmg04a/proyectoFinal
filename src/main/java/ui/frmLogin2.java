@@ -29,90 +29,49 @@ public class frmLogin2 extends javax.swing.JFrame {
     }
 
     private void login() {
-        System.out.println("Paso 1: Entró al método login"); // CHECKPOINT 1
+    String username = txtUsuario.getText().trim();
+    String password = new String(txtPassword.getPassword());
 
-        String username = txtUsuario.getText().trim();
-        String password = new String(txtPassword.getPassword());
+    if (username.isEmpty() || password.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Datos incompletos");
+        return;
+    }
 
-        if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Usuario y contraseña obligatorios");
-            return;
-        }
+    try {
+        UsuarioDAO dao = new UsuarioDAO(); 
+        String hash = PasswordUtil.sha256(password);
+        
+        // 1. Validar credenciales básicas
+        Usuario usuario = dao.login(username, hash);
 
-        try {
-            System.out.println("Paso 2: Intentando crear UsuarioDAO (Conectando...)"); // CHECKPOINT 2
-
-            // AQUÍ ES DONDE SOSPECHO QUE FALLA O SE CONGELA
-            UsuarioDAO dao = new UsuarioDAO(); 
-
-            System.out.println("Paso 3: DAO creado. Calculando Hash..."); // CHECKPOINT 3
-            String hash = PasswordUtil.sha256(password);
-            // --- AGREGA ESTO ---
-            System.out.println("HASH GENERADO POR JAVA: " + hash);
-            // -------------------  
-            System.out.println("Paso 4: Enviando datos a la BD..."); // CHECKPOINT 4
-            Usuario usuario = dao.login(username, hash);
-
-            if (usuario == null) {
-                System.out.println("Paso 5: Usuario es NULL (Credenciales malas o Error en Query)"); // CHECKPOINT 5
-                JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
-                return;
-            }
-
-            System.out.println("Paso 6: ¡ÉXITO! Iniciando sesión"); // CHECKPOINT 6
-            // sesion.iniciarSesion(usuario, usuario.getRol()); // Comenta esto si da error por ahora
-
+        if (usuario != null) {
+            // LOGIN EXITOSO
             JOptionPane.showMessageDialog(this, "Bienvenido " + usuario.getNombre());
             
-            // ... (código anterior donde obtienes el usuario del DAO) ...
+            // 2. CALCULAR PERMISOS (Soporta múltiples roles)
+            // Este método busca todos los roles del usuario, los suma y devuelve un Hex único (ej: "1F")
+            String permisosHex = dao.obtenerPermisosHexCombinados(usuario.getIdUsuario());
+            System.out.println("Permisos calculados (Hex): " + permisosHex);
 
-            if (usuario != null) {
-                // 1. Limpieza: Pasamos a mayúsculas y quitamos espacios para evitar errores tontos
-                // Asegúrate que 'usuario.getRol()' no sea null antes de esto, o usa un try/catch.
-                String rol = usuario.getRol().trim().toUpperCase();
+            // 3. REGISTRAR SESIÓN EN BD
+            dao.registrarSesion(usuario.getIdUsuario());
 
-                System.out.println("Rol detectado: " + rol); // Debug útil
-
-                // 2. El Switch Moderno (sin 'break', usa flechas '->')
-                switch (rol) {
-                    case "ADMINISTRADOR" -> {
-                        // Abres el formulario del Admin
-                        frm adminForm = new frm(); 
-                        adminForm.setVisible(true);
-                        this.dispose(); // Cierras el Login
-                    }
-
-                    case "RECEPCIONISTA" -> {
-                        // Abres el formulario de Recepción
-                        frmRecepcionista recepForm = new frmRecepcionista();
-                        recepForm.setVisible(true);
-                        this.dispose();
-                    }
-
-                    case "DOCTOR" -> {
-                        // Al doctor quizás le quieras pasar su ID o Usuario para filtrar sus citas
-                        frmDoctor docForm = new frmDoctor(); 
-                        docForm.setVisible(true);
-                        this.dispose();
-                    }
-
-                    // 'default' se ejecuta si el rol no coincide con ninguno
-                    default -> {
-                        JOptionPane.showMessageDialog(this, 
-                            "Error: Tu rol (" + rol + ") no tiene permiso para entrar al sistema.");
-                    }
-                }
-
-            } else {
-                JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
-            }
+            // 4. ABRIR FORMULARIO SEGÚN LA LÓGICA
+            // Si quieres usar SIEMPRE el sistema de permisos, ignora el switch de roles
+            // y abre directamente el frm principal pasando los permisos.
             
-        } catch (Exception ex) {
-            // IMPORTANTE: Imprimir el error real en la consola
-            System.out.println("ERROR FATAL EN LOGIN:");
-            ex.printStackTrace(); 
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+            frm menuPrincipal = new frm(permisosHex); 
+            menuPrincipal.setVisible(true);
+            this.dispose();
+
+        } else {
+            JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
         }
+        
+    } catch (Exception ex) {
+        ex.printStackTrace(); 
+        JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+    }    
     }
     /**
      * This method is called from within the constructor to initialize the form.
@@ -174,27 +133,25 @@ public class frmLogin2 extends javax.swing.JFrame {
                     .addComponent(txtPassword, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE))
                 .addGap(82, 82, 82))
             .addGroup(layout.createSequentialGroup()
-                .addGap(17, 17, 17)
-                .addComponent(jLabel3)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(133, 133, 133)
+                        .addComponent(jButton1))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(15, 15, 15)
+                        .addComponent(jLabel3)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jButton2)
                 .addContainerGap())
-            .addGroup(layout.createSequentialGroup()
-                .addGap(133, 133, 133)
-                .addComponent(jButton1)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(16, 16, 16)
-                        .addComponent(jLabel3))
-                    .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jButton2)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 54, Short.MAX_VALUE)
+                .addGap(34, 34, 34)
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 36, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(txtUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel1))
@@ -204,7 +161,8 @@ public class frmLogin2 extends javax.swing.JFrame {
                     .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(55, 55, 55)
                 .addComponent(jButton1)
-                .addGap(52, 52, 52))
+                .addGap(37, 37, 37)
+                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         pack();

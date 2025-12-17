@@ -67,6 +67,58 @@ public class UsuarioDAO {
         
         return null; // Retorna null si no existe, no tiene rol, o la pass está mal
     }
+    // Agrega estos métodos dentro de tu clase UsuarioDAO
+
+    // 1. Método para registrar la sesión en la BD
+    public boolean registrarSesion(int idUsuario) {
+        String sql = "INSERT INTO Sesion (id_sesion, id_usuario, fecha_inicio, estado) " +
+                     "VALUES (seq_sesion.NEXTVAL, ?, SYSDATE, 'ACTIVA')";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idUsuario);
+            ps.executeUpdate();
+            System.out.println("Sesión registrada exitosamente en BD para usuario ID: " + idUsuario);
+            return true;
+
+        } catch (SQLException e) {
+            System.out.println("Error al registrar sesión: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // 2. Método para calcular permisos combinados (Soporta 1 o muchos roles)
+    public String obtenerPermisosHexCombinados(int idUsuario) {
+        int permisosTotales = 0;
+
+        // Hacemos JOIN con Usuario_Rol para obtener TODOS los roles del usuario
+        String sql = "SELECT r.valor_permisos_hex " +
+                     "FROM APLICACION.Rol r " +
+                     "JOIN APLICACION.Usuario_Rol ur ON r.id_rol = ur.id_rol " +
+                     "WHERE ur.id_usuario = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idUsuario);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String hex = rs.getString("valor_permisos_hex");
+                    if (hex != null && !hex.isEmpty()) {
+                        // Convertimos Hex a Entero y usamos OR bitwise (|) para sumar permisos
+                        permisosTotales = permisosTotales | Integer.parseInt(hex, 16);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error calculando permisos: " + e.getMessage());
+        }
+
+        // Retornamos el total convertido nuevamente a Hexadecimal (String)
+        return Integer.toHexString(permisosTotales).toUpperCase();
+    }
 }
 
 
